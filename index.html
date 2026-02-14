@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PF PRO | 專業顧問壓力測試系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        .navy-bg { background-color: #001f3f; }
+        .gold-border { border-color: #daa520; }
+        @media print { .no-print { display: none; } }
+        /* 讓 PDF 導出時保持背景色 */
+        #report-content { background: white; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <nav class="navy-bg p-4 text-white shadow-lg no-print sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight">PF <span class="text-yellow-500">PRO</span></h1>
+            <div class="flex gap-2">
+                <button onclick="toggleProfileModal()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold transition">👤 設定名片</button>
+                <button onclick="generatePDF()" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg text-sm font-bold transition">📥 生成 PDF 報告</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="profileModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center no-print">
+        <div class="bg-white p-8 rounded-2xl max-w-md w-full shadow-2xl mx-4">
+            <h2 class="text-xl font-bold mb-4">設定顧問名片</h2>
+            <div class="space-y-4">
+                <input type="text" id="input-name" placeholder="顧問姓名" class="w-full p-2 border rounded">
+                <input type="text" id="input-title" placeholder="職位 (如: 資深理財經理)" class="w-full p-2 border rounded">
+                <input type="text" id="input-phone" placeholder="WhatsApp / 電話" class="w-full p-2 border rounded">
+                <input type="text" id="input-company" placeholder="所屬團隊 / 公司" class="w-full p-2 border rounded">
+                <div class="flex justify-end gap-2 pt-4">
+                    <button onclick="toggleProfileModal()" class="text-gray-500 px-4 py-2">取消</button>
+                    <button onclick="saveProfile()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-content" class="container mx-auto p-6 md:p-12 max-w-5xl">
+        
+        <div class="flex justify-between items-end border-b-4 border-blue-900 pb-6 mb-8">
+            <div>
+                <h1 class="text-3xl font-black text-blue-900 uppercase tracking-tight">Premium Financing</h1>
+                <h2 class="text-xl font-bold text-gray-600">保費融資壓力測試分析報告</h2>
+                <p class="text-gray-400 text-sm mt-2">報告編號：<span id="report-id"></span> | 日期：<span id="report-date"></span></p>
+            </div>
+            <div class="text-right no-print">
+                <span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">LIVE SIMULATION</span>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 no-print">
+                    <h3 class="font-bold mb-4 text-blue-900">調整參數</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">自備金額 (HKD)</label>
+                            <input type="range" id="outlay" min="100000" max="5000000" step="100000" value="1000000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="text-right font-bold text-blue-600" id="outlayVal">1,000,000</div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">銀行貸款 (HKD)</label>
+                            <input type="range" id="loan" min="0" max="15000000" step="100000" value="3000000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="text-right font-bold text-blue-600" id="loanVal">3,000,000</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-xl space-y-4">
+                            <p class="text-xs font-bold text-red-600 uppercase italic">⚠️ 壓力測試控制</p>
+                            <input type="range" id="stressRate" min="0" max="5" step="0.25" value="0" class="w-full h-2 accent-red-600">
+                            <div class="flex justify-between text-xs text-red-800 font-bold"><span>假設加息:</span><span id="stressRateVal">+0.0%</span></div>
+                            <input type="range" id="stressFulfill" min="50" max="100" step="5" value="100" class="w-full h-2 accent-red-600">
+                            <div class="flex justify-between text-xs text-red-800 font-bold"><span>分紅達成率:</span><span id="stressFulfillVal">100%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-200">
+                    <h3 class="font-bold mb-4 text-gray-700 uppercase text-sm tracking-widest">模擬參數摘要</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between"><span>總保費預算</span><span class="font-bold" id="pdf-total-p">HK$ 4,000,000</span></div>
+                        <div class="flex justify-between"><span>預期保單回報</span><span class="font-bold" id="pdf-ret">4.5%</span></div>
+                        <div class="flex justify-between"><span>銀行借貸利率</span><span class="font-bold" id="pdf-lrate">3.5%</span></div>
+                        <div class="border-t pt-2 mt-2">
+                            <div class="flex justify-between text-red-600"><span>壓力加息假設</span><span class="font-bold" id="pdf-s-rate">+0.0%</span></div>
+                            <div class="flex justify-between text-red-600"><span>分紅預期調整</span><span class="font-bold" id="pdf-s-ful">100%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="navy-bg text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="absolute right-[-10%] top-[-10%] opacity-10 font-black text-6xl italic">IRR</div>
+                        <h3 class="text-xs opacity-70 font-bold uppercase mb-2">槓桿後預計年化回報</h3>
+                        <div class="text-4xl font-black text-yellow-500"><span id="leveragedIRR">7.50</span>%</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
+                        <h3 class="text-xs text-gray-400 font-bold uppercase mb-2">每年利差收入 (預估)</h3>
+                        <div class="text-3xl font-bold text-blue-900" id="netIncome">HK$ 75,000</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
+                    <h3 class="font-bold text-gray-700 mb-4">10 年財富增長預測圖表</h3>
+                    <canvas id="growthChart" height="150"></canvas>
+                </div>
+
+                <div id="consultant-card" class="mt-8 p-6 bg-blue-50 border-l-8 border-blue-900 rounded-r-2xl flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-blue-900 font-bold uppercase tracking-tighter opacity-60 mb-1">理財顧問資訊</div>
+                        <h3 id="display-name" class="text-xl font-black text-blue-900 tracking-wide italic">請設定名片資料</h3>
+                        <p id="display-title" class="text-sm text-blue-700 font-medium"></p>
+                        <p id="display-company" class="text-xs text-gray-400 mt-1"></p>
+                    </div>
+                    <div class="text-right">
+                        <div id="display-phone" class="text-lg font-bold text-blue-900"></div>
+                        <div class="text-[10px] text-gray-400 mt-1 italic">此報告由 PF PRO 系統生成</div>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-gray-400 leading-relaxed pt-4 border-t">
+                    重要聲明：本文件不構成任何法律、稅務、投資建議。保費融資涉及槓桿風險，借貸利率波動會直接影響最終收益。所有預測回報僅作演示用途，並非保證。請參閱保險公司及貸款銀行的合約條款。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        let chart;
+
+        // 初始化隨機報告 ID
+        document.getElementById('report-id').innerText = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        function calculate() {
+            const outlay = parseFloat(document.getElementById('outlay').value);
+            const loan = parseFloat(document.getElementById('loan').value);
+            const pReturnBase = 0.045; // 假設基礎
+            const lRateBase = 0.035; // 假設基礎
+            const addRate = parseFloat(document.getElementById('stressRate').value) / 100;
+            const fulfill = parseFloat(document.getElementById('stressFulfill').value) / 100;
+
+            // 更新 UI
+            document.getElementById('outlayVal').innerText = outlay.toLocaleString();
+            document.getElementById('loanVal').innerText = loan.toLocaleString();
+            document.getElementById('stressRateVal').innerText = `+${(addRate*100).toFixed(2)}%`;
+            document.getElementById('stressFulfillVal').innerText = `${(fulfill*100).toFixed(0)}%`;
+            
+            // 更新 PDF 摘要
+            document.getElementById('pdf-total-p').innerText = `HK$ ${(outlay + loan).toLocaleString()}`;
+            document.getElementById('pdf-s-rate').innerText = `+${(addRate*100).toFixed(2)}%`;
+            document.getElementById('pdf-s-ful').innerText = `${(fulfill*100).toFixed(0)}%`;
+
+            const adjReturn = pReturnBase * fulfill;
+            const adjRate = lRateBase + addRate;
+            const netGain = ((outlay + loan) * adjReturn) - (loan * adjRate);
+            const irr = (netGain / outlay) * 100;
+
+            document.getElementById('leveragedIRR').innerText = irr.toFixed(2);
+            document.getElementById('netIncome').innerText = `HK$ ${Math.round(netGain).toLocaleString()}`;
+            document.getElementById('report-date').innerText = new Date().toLocaleDateString('zh-HK');
+
+            updateChart(outlay, pReturnBase, irr/100);
+        }
+
+        function updateChart(outlay, baseRate, stressRate) {
+            const labels = Array.from({length: 11}, (_, i) => `Y${i}`);
+            const baseData = labels.map((_, i) => outlay * Math.pow(1 + baseRate, i));
+            const stressData = labels.map((_, i) => outlay * Math.pow(1 + stressRate, i));
+
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '原始保單', data: baseData, borderColor: '#cbd5e1', borderDash: [5, 5], fill: false },
+                        { label: '槓桿壓力測試', data: stressData, borderColor: '#1e3a8a', backgroundColor: 'rgba(30, 58, 138, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+        }
+
+        function toggleProfileModal() { document.getElementById('profileModal').classList.toggle('hidden'); }
+
+        function saveProfile() {
+            const profile = {
+                name: document.getElementById('input-name').value,
+                title: document.getElementById('input-title').value,
+                phone: document.getElementById('input-phone').value,
+                company: document.getElementById('input-company').value
+            };
+            localStorage.setItem('pf_pro_v3_profile', JSON.stringify(profile));
+            updateProfileDisplay(profile);
+            toggleProfileModal();
+        }
+
+        function updateProfileDisplay(profile) {
+            if (!profile) return;
+            document.getElementById('display-name').innerText = profile.name || "";
+            document.getElementById('display-title').innerText = profile.title || "";
+            document.getElementById('display-phone').innerText = profile.phone || "";
+            document.getElementById('display-company').innerText = profile.company || "";
+            document.getElementById('display-name').classList.remove('text-gray-400', 'font-normal');
+        }
+
+        function generatePDF() {
+            const element = document.getElementById('report-content');
+            const opt = {
+                margin: 0.2,
+                filename: `PF_Report_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        window.onload = function() {
+            const saved = localStorage.getItem('pf_pro_v3_profile');
+            if (saved) updateProfileDisplay(JSON.parse(saved));
+            calculate();
+        };
+
+        document.querySelectorAll('input').forEach(input => input.addEventListener('input', calculate));
+    </script>
+</body>
+</html>
