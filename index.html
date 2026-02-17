@@ -43,6 +43,55 @@
         </div>
     </div>
 
+    <!-- 首次使用同意彈窗 -->
+    <div id="consentModal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center no-print">
+        <div class="bg-white p-8 rounded-2xl max-w-2xl w-full shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold text-blue-900 mb-4">歡迎使用 PF PRO</h2>
+            <div class="space-y-4 text-gray-700">
+                <p class="leading-relaxed">
+                    在使用本系統前，請仔細閱讀並同意我們的<strong>使用條款</strong>和<strong>私隱政策</strong>。
+                </p>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+                    <p class="font-bold text-yellow-900 mb-2">⚠️ 重要提示</p>
+                    <ul class="text-sm text-yellow-800 space-y-1 list-disc list-inside">
+                        <li>本系統提供的計算結果僅供參考，不構成投資建議</li>
+                        <li>保費融資涉及槓桿風險，實際回報可能與預測不同</li>
+                        <li>您的顧問名片資訊將儲存在您的瀏覽器本地，不會上傳到伺服器</li>
+                    </ul>
+                </div>
+
+                <div class="bg-blue-50 p-4 rounded-lg space-y-2">
+                    <p class="font-semibold text-blue-900">資料收集說明：</p>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>✓ 顧問名片資訊（姓名、職位、電話等）儲存於您的裝置</li>
+                        <li>✓ 財務模擬參數僅用於即時計算</li>
+                        <li>✓ 我們不會出售或共享您的個人資料</li>
+                    </ul>
+                </div>
+
+                <div class="flex items-start gap-3 mt-6">
+                    <input type="checkbox" id="consentCheck" class="mt-1 w-5 h-5 text-blue-600">
+                    <label for="consentCheck" class="text-sm leading-relaxed cursor-pointer">
+                        我已閱讀並同意 
+                        <a href="terms.html" target="_blank" class="text-blue-600 hover:underline font-semibold">使用條款</a> 
+                        和 
+                        <a href="privacy.html" target="_blank" class="text-blue-600 hover:underline font-semibold">私隱政策</a>
+                    </label>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button onclick="rejectConsent()" class="text-gray-500 px-6 py-2 hover:bg-gray-100 rounded-lg transition">
+                        拒絕
+                    </button>
+                    <button id="acceptBtn" onclick="acceptConsent()" disabled class="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                        同意並繼續
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="report-content" class="container mx-auto p-6 md:p-12 max-w-5xl">
         
         <div class="flex justify-between items-end border-b-4 border-blue-900 pb-6 mb-8">
@@ -133,12 +182,48 @@
         </div>
     </div>
 
+    <footer class="bg-gray-800 text-gray-400 py-6 mt-12">
+        <div class="container mx-auto px-6 text-center space-y-3">
+            <div class="flex justify-center gap-6 text-sm">
+                <a href="terms.html" class="hover:text-white transition">使用條款</a>
+                <span>|</span>
+                <a href="privacy.html" class="hover:text-white transition">私隱政策</a>
+            </div>
+            <p class="text-sm">Copyright © Billion Studio 2026. All rights reserved.</p>
+        </div>
+    </footer>
+
     <script>
         const ctx = document.getElementById('growthChart').getContext('2d');
         let chart;
 
         // 初始化隨機報告 ID
         document.getElementById('report-id').innerText = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // 首次使用同意彈窗邏輯
+        function checkConsent() {
+            const consent = localStorage.getItem('pf_pro_consent');
+            if (!consent) {
+                document.getElementById('consentModal').classList.remove('hidden');
+            }
+        }
+
+        function acceptConsent() {
+            localStorage.setItem('pf_pro_consent', 'accepted');
+            localStorage.setItem('pf_pro_consent_date', new Date().toISOString());
+            document.getElementById('consentModal').classList.add('hidden');
+        }
+
+        function rejectConsent() {
+            alert('您需要同意使用條款和私隱政策才能使用本系統。');
+            // 可選：重定向到其他頁面或關閉視窗
+            // window.location.href = 'https://billionstudio.com';
+        }
+
+        // 啟用/禁用接受按鈕
+        document.getElementById('consentCheck')?.addEventListener('change', function() {
+            document.getElementById('acceptBtn').disabled = !this.checked;
+        });
 
         function calculate() {
             const outlay = parseFloat(document.getElementById('outlay').value);
@@ -226,6 +311,7 @@
         }
 
         window.onload = function() {
+            checkConsent(); // 檢查是否已同意
             const saved = localStorage.getItem('pf_pro_v3_profile');
             if (saved) updateProfileDisplay(JSON.parse(saved));
             calculate();
